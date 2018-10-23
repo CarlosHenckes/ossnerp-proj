@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <!-- Bootstrap CSS -->
+  <% include ../partials/header.ejs %>
+    <title>PRENSSO maquinas</title>
+</head>
+
+<body>
+  <% include ../partials/navbar.ejs %>
+    <div class="container">
+
+      <div class="row">
+        <div class="col-2">
+          <ul class="nav flex-column" style="margin-top: 45px;">
+            <li class="nav-item pb-2 btn-pre-edit">
+              <a class="btn btn-outline-secondary btn-sm btn-block" href="#">Editar</a>
+            </li>
+            <li class="nav-item pb-2 btn-pre-save" style="display:none;">
+              <a class="btn btn-outline-secondary btn-sm btn-block lnk-salvar" href="#">Salvar</a>
+            </li>
+          </ul>
+        </div>
+        <div class="col-10">
+          <h3>Configurações do equipamento</h3>
+          <form method="POST" id="confform" action="/saveconfig">
+            <div class="row col-4">
+              <div class="form-group">
+                <label>Porta Serial</label>
+                <input type="text" value="<%= file.com %>" disabled="disabled" class="form-control">
+                <input type="hidden" name="com" value="<%= file.com %>">
+              </div>
+            </div>
+            <div class="row col-4">
+              <div class="form-group">
+                <label>Ass. Equipamento</label>
+                <input type="text" name="signature" value="<%= file.signature %>" disabled="disabled" class="form-control in-editable">
+              </div>
+            </div>
+            <div class="row col-4">
+              <div class="form-group">
+                <label>Baudrate</label>
+                <input type="text" name="baudrate" value="<%= file.baudrate %>" disabled="disabled" class="form-control in-editable">
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <% include ../partials/footer.ejs %>
+      <script>
+        $(function () {
+          $('.btn-pre-edit').on('click', function (event) {
+            event.preventDefault;
+            $('.btn-pre-save').css("display", "block");
+            $('.in-editable').attr('disabled', false);
+            $('.btn-pre-edit').css("display", "none");
+          })
+
+          $('.lnk-salvar').on('click', function(event){
+            event.preventDefault;
+            $('#confform').submit();
+          });
+        });
+      </script>
+</body>
+
+</html>

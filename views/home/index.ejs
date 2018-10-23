@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <!-- Bootstrap CSS -->
+  <% include ../partials/header.ejs %>
+    <script src="socket.io/socket.io.js"></script>
+    <script src="/javascripts/Chart.min.js"></script>
+    <script src="/javascripts/jspdf.min.js"></script>
+    <title>PRENSSO maquinas</title>
+    <style>
+      canvas {
+        width: 500px !important;
+        height: 250px !important;
+      }
+    </style>
+</head>
+
+<body>
+  <% include ../partials/navbar.ejs %>
+    <div class="container">
+      <div class="row">
+        <div class="col-2">
+          <ul class="nav flex-column" style="margin-top: 45px;">
+            <li class="nav-item pb-2">
+              <button id="btnMedir" class="btn btn-outline-secondary btn-sm btn-block" href="#" onclick="readSensor()">Medir</button>
+            </li>
+            <li class="nav-item pb-2">
+              <button class="btn btn-outline-secondary btn-sm btn-block" href="#" onclick="stopSensor()">Parar</button>
+            </li>
+            <li class="nav-item pb-2">
+              <button class="btn btn-outline-secondary btn-sm btn-block" href="#" onclick="toPDF()">Imprimir</button>
+            </li>
+            <li class="nav-item pb-2">
+              <button class="btn btn-outline-secondary btn-sm btn-block" href="#" onclick="saveReading(null)">Salvar</button>
+            </li>
+          </ul>
+        </div>
+        <div class="col-10">
+          <canvas id="myChart" style="background-color: white; width: 400px; height: 200px;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      var canvas = document.getElementById('myChart');
+      var ctx = canvas.getContext('2d');
+      Chart.defaults.global.tooltips.enabled = true;
+      var readings = { entry: [] };
+      var run = false;
+      var clock;
+      var socket = io();
+      var dt = [];
+      var lb = [];
+
+      var chart = new Chart(ctx, {
+        // type
+        type: 'line',
+        data: {
+          labels: lb, //[" ", " ", " ", " ", " ", " ", " ", " "]
+          datasets: [{
+            label: "Pressao/bar",
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            borderColor: 'rgb(255, 0, 0)',
+            data: dt,
+          }]
+        },
+        // config
+        options: {
+          responsive: false,
+          devicePixelRatio: 1.8,
+          maintainAspectRatio: true,
+          title: {
+            display: true,
+            text: 'TESTE DE PRESSÃO'
+          }, legend: { display: false },
+          layout: {
+            padding: 15
+          }, scales: {
+            yAxes: [{
+              ticks: {
+                max: 190,
+                min: -10, stepSize: 20
+              }, scaleLabel: {
+                display: true,
+                labelString: 'pressão em bar', fontFamily: 'Calibri', fontSize: 14
+              }
+            }]
+          }, elements: {
+            line: {
+              tension: 0.2
+            }
+          }
+        }
+      });
+
+      function readSensor() {
+        var data = [];
+        var label = [];
+        removeData(() => {
+          btnChangeVisibility($('#btnMedir'));
+          startClock();
+          run = true;
+        });
+      }
+
+      socket.on('leitura', function (leitura) {
+        if (run === true) {
+          var reading = JSON.parse(leitura);
+          chart.data.labels.push("");
+          chart.data.datasets.forEach((dataset) => {
+            dataset.data.push(reading.read);
+          });
+          chart.update();
+        }
+      });
+
+      function removeData(callback) {
+
+        for (var i = 0; i <= chart.data.labels.length; i++) {
+          chart.data.labels.pop();
+          chart.data.datasets.forEach((d) => {
+            d.data.pop();
+          });
+        }
+        chart.update();
+        callback();
+      }
+
+      function btnChangeVisibility(obj) {
+        if ($(obj).attr('disabled') == 'disabled')
+          $(obj).removeAttr('disabled');
+        else
+          $(obj).attr('disabled', 'disabled');
+      }
+
+      function stopSensor() {
+        clearInterval(run);
+        stopClock();
+        btnChangeVisibility($('#btnMedir'));
+        run = false;
+      }
+
+      function stopClock() {
+        clearInterval(clock);
+      }
+
+      function startClock() {
+        var i = 1;
+        clock = setInterval(() => {
+          i++;
+          var minut = Math.floor(i / 60);
+          var secon = Math.floor(i % 60);
+          if (minut < 10) minut = "0" + minut;
+          if (secon < 10) secon = "0" + secon;
+          $('#btnMedir').html("00:" + minut + ":" + secon);
+        }, 1000);
+      }
+
+      function saveReading(val) {
+        var a = [];
+        chart.data.datasets.forEach((dataset) => {
+          a.push(dataset.data);
+        });
+
+        $.ajax({
+          url: "/savereadings",
+          method: "POST",
+          data: { "reads": a.toString() },
+          success: function (res) {
+            console.log(res);
+          },
+          error: function (err) {
+            console.log(err);
+          }
+        });
+
+      }
+
+      function toPDF() {
+        var pdf = new jsPDF();
+        pdf.addHTML($('#myChart')[0], () => {
+          pdf.save("download.pdf");
+        });
+      }
+
+		// http://www.chartjs.org/docs/latest/configuration/layout.html
+		// http://html2canvas.hertzen.com/documentation
+    </script>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <% include ../partials/footer.ejs %>
+      <script>
+
+        $(function () {
+          $('.btn-outline-secondary').on('click', (event) => {
+            event.preventDefault;
+          });
+        });
+      </script>
+</body>
+
+</html>
